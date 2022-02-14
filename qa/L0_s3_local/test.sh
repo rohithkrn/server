@@ -64,19 +64,19 @@ source ../common/util.sh
 rm -f *.log*
 
 ## Setup local MINIO server
-(wget https://dl.min.io/server/minio/release/linux-amd64/minio && \
-    chmod +x minio && \
-    mv minio /usr/local/bin && \
-    mkdir /usr/local/share/minio && \
-    mkdir /etc/minio)
+# (wget https://dl.min.io/server/minio/release/linux-amd64/minio && \
+#     chmod +x minio && \
+#     mv minio /usr/local/bin && \
+#     mkdir /usr/local/share/minio && \
+#     mkdir /etc/minio)
 
 export MINIO_ACCESS_KEY="minio"
 MINIO_VOLUMES="/usr/local/share/minio/"
 MINIO_OPTS="-C /etc/minio --address localhost:4572"
 export MINIO_SECRET_KEY="miniostorage"
 
-(curl -O https://raw.githubusercontent.com/minio/minio-service/master/linux-systemd/minio.service && \
-    mv minio.service /etc/systemd/system)
+# (curl -O https://raw.githubusercontent.com/minio/minio-service/master/linux-systemd/minio.service && \
+#     mv minio.service /etc/systemd/system)
 
 # Start minio server
 /usr/local/bin/minio server $MINIO_OPTS $MINIO_VOLUMES &
@@ -128,10 +128,10 @@ for HOST in "127.0.0.1" "localhost"; do
             RET=1
         fi
 
-        $PERF_CLIENT -m ${BACKEND}_float32_float32_float32 -p 3000 -t 1 >$CLIENT_LOG 2>&1
+        $PERF_CLIENT -m ${BACKEND}_float32_float32_float32 -p 3000 -t 1 > ${CLIENT_LOG}.${BACKEND}.${HOST} 2>&1
         if [ $? -ne 0 ]; then
             echo -e "\n***\n*** Test Failed\n***"
-            cat $CLIENT_LOG
+            cat ${CLIENT_LOG}.${BACKEND}.${HOST}
             RET=1
         fi
     done
@@ -148,75 +148,75 @@ for HOST in "127.0.0.1" "localhost"; do
     wait $SERVER_PID
 done
 
-# Test with Polling
-SERVER_ARGS="--model-repository=s3://localhost:4572/demo-bucket1.0 --model-control-mode=poll"
-SERVER_LOG="./inference_server_poll.log"
+# # Test with Polling
+# SERVER_ARGS="--model-repository=s3://localhost:4572/demo-bucket1.0 --model-control-mode=poll"
+# SERVER_LOG="./inference_server_poll.log"
 
-run_server
-if [ "$SERVER_PID" == "0" ]; then
-    echo -e "\n***\n*** Failed to start $SERVER\n***"
-    cat $SERVER_LOG
-    # Kill minio server
-    kill $MINIO_PID
-    wait $MINIO_PID
-    exit 1
-fi
+# run_server
+# if [ "$SERVER_PID" == "0" ]; then
+#     echo -e "\n***\n*** Failed to start $SERVER\n***"
+#     cat $SERVER_LOG
+#     # Kill minio server
+#     kill $MINIO_PID
+#     wait $MINIO_PID
+#     exit 1
+# fi
 
-cp -r models/libtorch_float32_float32_float32/1 models/libtorch_float32_float32_float32/4
-awslocal $ENDPOINT_FLAG s3 sync models s3://demo-bucket1.0
+# cp -r models/libtorch_float32_float32_float32/1 models/libtorch_float32_float32_float32/4
+# awslocal $ENDPOINT_FLAG s3 sync models s3://demo-bucket1.0
 
-sleep 20
+# sleep 20
 
-set + e
-CURL_LOG=$(curl -X POST localhost:8000/v2/repository/index)
-if [[ "$CURL_LOG" != *"{\"name\":\"libtorch_float32_float32_float32\",\"version\":\"3\",\"state\":\"UNAVAILABLE\",\"reason\":\"unloaded\"}"* ]]; then
-    echo -e "\n***\n*** Failed. Server did not unload libtorch_float32_float32_float32 version 3\n***"
-    RET=1
-fi
+# set + e
+# CURL_LOG=$(curl -X POST localhost:8000/v2/repository/index)
+# if [[ "$CURL_LOG" != *"{\"name\":\"libtorch_float32_float32_float32\",\"version\":\"3\",\"state\":\"UNAVAILABLE\",\"reason\":\"unloaded\"}"* ]]; then
+#     echo -e "\n***\n*** Failed. Server did not unload libtorch_float32_float32_float32 version 3\n***"
+#     RET=1
+# fi
 
-if [[ "$CURL_LOG" != *"{\"name\":\"libtorch_float32_float32_float32\",\"version\":\"4\",\"state\":\"READY\"}"* ]]; then
-    echo -e "\n***\n*** Failed. Server did not load libtorch_float32_float32_float32 version 4\n***"
-    RET=1
-fi
-set -e
+# if [[ "$CURL_LOG" != *"{\"name\":\"libtorch_float32_float32_float32\",\"version\":\"4\",\"state\":\"READY\"}"* ]]; then
+#     echo -e "\n***\n*** Failed. Server did not load libtorch_float32_float32_float32 version 4\n***"
+#     RET=1
+# fi
+# set -e
 
-kill $SERVER_PID
-wait $SERVER_PID
+# kill $SERVER_PID
+# wait $SERVER_PID
 
-# Destroy bucket
-awslocal $ENDPOINT_FLAG s3 rm s3://demo-bucket1.0 --recursive --include "*" && \
-    awslocal $ENDPOINT_FLAG s3 rb s3://demo-bucket1.0
+# # Destroy bucket
+# awslocal $ENDPOINT_FLAG s3 rm s3://demo-bucket1.0 --recursive --include "*" && \
+#     awslocal $ENDPOINT_FLAG s3 rb s3://demo-bucket1.0
 
-# Test with Polling, no model configuration file - with strict model config disabled
-rm -rf models && mkdir models
-cp -r $DATADIR/savedmodel_float32_float32_float32 models/.
-rm models/savedmodel_float32_float32_float32/config.pbtxt
+# # Test with Polling, no model configuration file - with strict model config disabled
+# rm -rf models && mkdir models
+# cp -r $DATADIR/savedmodel_float32_float32_float32 models/.
+# rm models/savedmodel_float32_float32_float32/config.pbtxt
 
-awslocal $ENDPOINT_FLAG s3 mb s3://demo-bucket1.0 && \
-    awslocal $ENDPOINT_FLAG s3 sync models s3://demo-bucket1.0
+# awslocal $ENDPOINT_FLAG s3 mb s3://demo-bucket1.0 && \
+#     awslocal $ENDPOINT_FLAG s3 sync models s3://demo-bucket1.0
 
-SERVER_ARGS="--model-repository=s3://localhost:4572/demo-bucket1.0 --model-control-mode=poll --strict-model-config=false"
-SERVER_LOG="./inference_server_noconfig.log"
+# SERVER_ARGS="--model-repository=s3://localhost:4572/demo-bucket1.0 --model-control-mode=poll --strict-model-config=false"
+# SERVER_LOG="./inference_server_noconfig.log"
 
-run_server
-if [ "$SERVER_PID" == "0" ]; then
-    echo -e "\n***\n*** Failed to start $SERVER\n***"
-    cat $SERVER_LOG
-    # Kill minio server
-    kill $MINIO_PID
-    wait $MINIO_PID
-    exit 1
-fi
+# run_server
+# if [ "$SERVER_PID" == "0" ]; then
+#     echo -e "\n***\n*** Failed to start $SERVER\n***"
+#     cat $SERVER_LOG
+#     # Kill minio server
+#     kill $MINIO_PID
+#     wait $MINIO_PID
+#     exit 1
+# fi
 
-$PERF_CLIENT -m savedmodel_float32_float32_float32 -p 3000 -t 1 > $CLIENT_LOG 2>&1
-if [ $? -ne 0 ]; then
-    echo -e "\n***\n*** Test Failed\n***"
-    cat $CLIENT_LOG
-    RET=1
-fi
+# $PERF_CLIENT -m savedmodel_float32_float32_float32 -p 3000 -t 1 > $CLIENT_LOG 2>&1
+# if [ $? -ne 0 ]; then
+#     echo -e "\n***\n*** Test Failed\n***"
+#     cat $CLIENT_LOG
+#     RET=1
+# fi
 
-kill $SERVER_PID
-wait $SERVER_PID
+# kill $SERVER_PID
+# wait $SERVER_PID
 
 # Destroy bucket
 awslocal $ENDPOINT_FLAG s3 rm s3://demo-bucket1.0 --recursive --include "*" && \
