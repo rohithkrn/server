@@ -45,18 +45,22 @@ PERF_CLIENT=../clients/perf_client
 
 DATADIR="/data/inferenceserver/${REPO_VERSION}/qa_model_repository"
 BACKENDS="libtorch onnx"
+MODELS="resnet50_fp32_libtorch resnet50_fp32_onnx"
 
 rm -rf models && mkdir models
-for BACKEND in $BACKENDS; do
-    cp -r $DATADIR/${BACKEND}_float32_float32_float32 models/.
-    # Remove version policy from config.pbtxt
-    sed -i '/^version_policy/d' models/${BACKEND}_float32_float32_float32/config.pbtxt
+# for BACKEND in $BACKENDS; do
+#     cp -r $DATADIR/${BACKEND}_float32_float32_float32 models/.
+#     # Remove version policy from config.pbtxt
+#     sed -i '/^version_policy/d' models/${BACKEND}_float32_float32_float32/config.pbtxt
+# done
+for MODEL in $MODELS; do
+    cp -r /data/inferenceserver/${REPO_VERSION}/perf_model_store/${MODEL} models/.
 done
 
 # Create model with name that has all types of allowed characters
-DUMMY_MODEL="Model_repo-1.0"
-cp -r models/libtorch_float32_float32_float32 models/$DUMMY_MODEL
-sed -i 's/libtorch_float32_float32_float32/Model_repo-1.0/g' models/$DUMMY_MODEL/config.pbtxt
+# DUMMY_MODEL="Model_repo-1.0"
+# cp -r models/libtorch_float32_float32_float32 models/$DUMMY_MODEL
+# sed -i 's/libtorch_float32_float32_float32/Model_repo-1.0/g' models/$DUMMY_MODEL/config.pbtxt
 
 SERVER=/opt/tritonserver/bin/tritonserver
 source ../common/util.sh
@@ -121,14 +125,17 @@ for HOST in "127.0.0.1" "localhost"; do
     fi
 
     set +e
-    for BACKEND in $BACKENDS; do
-        code=`curl -s -w %{http_code} -X POST localhost:8000/v2/repository/models/${BACKEND}_float32_float32_float32/load`
+    # for BACKEND in $BACKENDS; do
+    for MODEL in $MODELS; do
+        # code=`curl -s -w %{http_code} -X POST localhost:8000/v2/repository/models/${BACKEND}_float32_float32_float32/load`
+        code=`curl -s -w %{http_code} -X POST localhost:8000/v2/repository/models/${MODEL}/load`
         if [ "$code" != "200" ]; then
             echo -e "\n***\n*** Test Failed\n***"
             RET=1
         fi
 
-        $PERF_CLIENT -m ${BACKEND}_float32_float32_float32 -p 3000 -t 1 > ${CLIENT_LOG}.${BACKEND}.${HOST} 2>&1
+        # $PERF_CLIENT -m ${BACKEND}_float32_float32_float32 -p 3000 -t 1 > ${CLIENT_LOG}.${BACKEND}.${HOST} 2>&1
+        $PERF_CLIENT -m ${MODEL} -p 5000 -t 1 > ${CLIENT_LOG}.${MODEL}.${HOST} 2>&1
         if [ $? -ne 0 ]; then
             echo -e "\n***\n*** Test Failed\n***"
             cat ${CLIENT_LOG}.${BACKEND}.${HOST}
@@ -163,14 +170,17 @@ if [ "$SERVER_PID" == "0" ]; then
 fi
 
 set +e
-for BACKEND in $BACKENDS; do
-    code=`curl -s -w %{http_code} -X POST localhost:8000/v2/repository/models/${BACKEND}_float32_float32_float32/load`
+# for BACKEND in $BACKENDS; do
+for MODEL in $MODELS; do
+    # code=`curl -s -w %{http_code} -X POST localhost:8000/v2/repository/models/${BACKEND}_float32_float32_float32/load`
+    code=`curl -s -w %{http_code} -X POST localhost:8000/v2/repository/models/${MODEL}/load`
     if [ "$code" != "200" ]; then
         echo -e "\n***\n*** Test Failed\n***"
         RET=1
     fi
 
-    $PERF_CLIENT -m ${BACKEND}_float32_float32_float32 -p 3000 -t 1 > ${CLIENT_LOG}.${BACKEND}.${HOST} 2>&1
+    # $PERF_CLIENT -m ${BACKEND}_float32_float32_float32 -p 3000 -t 1 > ${CLIENT_LOG}.${BACKEND}.${HOST} 2>&1
+    $PERF_CLIENT -m ${MODEL} -p 5000 -t 1 > ${CLIENT_LOG}.${MODEL}.${HOST} 2>&1
     if [ $? -ne 0 ]; then
         echo -e "\n***\n*** Test Failed\n***"
         cat ${CLIENT_LOG}.${BACKEND}.${HOST}
