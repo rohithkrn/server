@@ -44,7 +44,7 @@ CLIENT_LOG="./client.log"
 PERF_CLIENT=../clients/perf_client
 
 DATADIR="/data/inferenceserver/${REPO_VERSION}/qa_model_repository"
-BACKENDS="graphdef libtorch onnx plan savedmodel"
+BACKENDS="libtorch onnx"
 
 rm -rf models && mkdir models
 for BACKEND in $BACKENDS; do
@@ -63,7 +63,7 @@ source ../common/util.sh
 
 rm -f *.log*
 
-## Setup local MINIO server
+# Setup local MINIO server
 # (wget https://dl.min.io/server/minio/release/linux-amd64/minio && \
 #     chmod +x minio && \
 #     mv minio /usr/local/bin && \
@@ -136,18 +136,58 @@ for HOST in "127.0.0.1" "localhost"; do
         fi
     done
 
-    # Try to load model with name that checks for all types of allowed characters
-    code=`curl -s -w %{http_code} -X POST localhost:8000/v2/repository/models/${DUMMY_MODEL}/load`
-    if [ "$code" != "200" ]; then
-        echo -e "\n***\n*** Test Failed\n***"
-        RET=1
-    fi
+    # # Try to load model with name that checks for all types of allowed characters
+    # code=`curl -s -w %{http_code} -X POST localhost:8000/v2/repository/models/${DUMMY_MODEL}/load`
+    # if [ "$code" != "200" ]; then
+    #     echo -e "\n***\n*** Test Failed\n***"
+    #     RET=1
+    # fi
     set -e
 
     kill $SERVER_PID
     wait $SERVER_PID
 done
 
+SERVER_ARGS="--model-repository=models --model-control-mode=explicit"
+SERVER_LOG="./inference_server_localfs.log"
+HOST="local"
+
+run_server
+if [ "$SERVER_PID" == "0" ]; then
+    echo -e "\n***\n*** Failed to start $SERVER\n***"
+    cat $SERVER_LOG
+    # Kill minio server
+    kill $MINIO_PID
+    wait $MINIO_PID
+    exit 1
+fi
+
+set +e
+for BACKEND in $BACKENDS; do
+    code=`curl -s -w %{http_code} -X POST localhost:8000/v2/repository/models/${BACKEND}_float32_float32_float32/load`
+    if [ "$code" != "200" ]; then
+        echo -e "\n***\n*** Test Failed\n***"
+        RET=1
+    fi
+
+    $PERF_CLIENT -m ${BACKEND}_float32_float32_float32 -p 3000 -t 1 > ${CLIENT_LOG}.${BACKEND}.${HOST} 2>&1
+    if [ $? -ne 0 ]; then
+        echo -e "\n***\n*** Test Failed\n***"
+        cat ${CLIENT_LOG}.${BACKEND}.${HOST}
+        RET=1
+    fi
+done
+
+# # Try to load model with name that checks for all types of allowed characters
+# code=`curl -s -w %{http_code} -X POST localhost:8000/v2/repository/models/${DUMMY_MODEL}/load`
+# if [ "$code" != "200" ]; then
+#     echo -e "\n***\n*** Test Failed\n***"
+#     RET=1
+# fi
+set -e
+
+kill $SERVER_PID
+wait $SERVER_PID
 # # Test with Polling
 # SERVER_ARGS="--model-repository=s3://localhost:4572/demo-bucket1.0 --model-control-mode=poll"
 # SERVER_LOG="./inference_server_poll.log"
