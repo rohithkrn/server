@@ -25,6 +25,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "src/core/filesystem.h"
+#include "src/core/logging.h"
 
 #ifdef _WIN32
 // suppress the min and max definitions in Windef.h.
@@ -1223,6 +1224,8 @@ Status
 S3FileSystem::ParsePath(
     const std::string& path, std::string* bucket, std::string* object)
 {
+  LOG_INFO << "ParsePath: " << path;
+
   // Cleanup extra slashes
   std::string clean_path;
   RETURN_IF_ERROR(CleanPath(path, &clean_path));
