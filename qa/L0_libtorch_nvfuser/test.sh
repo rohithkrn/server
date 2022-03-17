@@ -59,12 +59,12 @@ for FLAG in true false none; do
 
     if [ "$FLAG" != "none" ]; then
         echo """
-        parameters: {
-            key: \"ENABLE_NVFUSER\"
-            value: {
-                string_value: \"$FLAG\"
-            }
-        }""" >> models/resnet50_libtorch/config.pbtxt
+parameters: {
+    key: \"ENABLE_NVFUSER\"
+    value: {
+        string_value: \"$FLAG\"
+    }
+}""" >> models/resnet50_libtorch/config.pbtxt
     fi
 
     run_server
