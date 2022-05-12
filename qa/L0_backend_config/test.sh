@@ -52,6 +52,9 @@ rm -f $SERVER_LOG_BASE*
 
 COMMON_ARGS="--model-repository=`pwd`/models --strict-model-config=false --log-verbose=1 "
 
+#TODO: NEED TO CHECK OTHER BACKENDS WHICH MAKE USE OF THIS.
+#  CAN DO THIS ALL AT ONCE BY LOADING ALL MODELS AND POLLING THE CONFIG 
+#  FOR EACH.
 NEGATIVE_PARSE_ARGS=("--backend-config=,default-max-batch-size=3 $COMMON_ARGS" \
                     "--backend-config=default-max-batch-size= $COMMON_ARGS" \
                     "--backend-config=default-max-batch-size $COMMON_ARGS" \
