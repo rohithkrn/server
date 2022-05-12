@@ -91,10 +91,16 @@ else
             RET=1
         fi
     else
-        echo "*** FAILED: No log statement stating default amx batch size\n"
+        echo "*** FAILED: No log statement stating default max batch size\n"
         RET=1
     fi
-    
+
+    # Assert we are also turning on the dynamic_batcher    
+    DYNAMIC_BATCHING_LOG_LINE=$(grep "\"dynamic_batching\": {}" $SERVER_LOG)
+    if [ "$DYNAMIC_BATCHING_LOG_LINE" == "" ]; then
+        echo "*** FAILED: Expected dynamic batching to be set in model config but was not found\n"
+        RET=1
+    fi
     kill $SERVER_PID
     wait $SERVER_PID
 fi
@@ -120,10 +126,17 @@ for ((i=0; i < ${#POSITIVE_TEST_ARGS[@]}; i++)); do
                 RET=1
             fi
         else
-            echo "*** FAILED: No log statement stating default amx batch size\n"
+            echo "*** FAILED: No log statement stating default max batch size\n"
             RET=1
         fi
         
+        # Assert we are also turning on the dynamic_batcher    
+        DYNAMIC_BATCHING_LOG_LINE=$(grep "\"dynamic_batching\": {}" $SERVER_LOG)
+        if [ "$DYNAMIC_BATCHING_LOG_LINE" == "" ]; then
+            echo "*** FAILED: Expected dynamic batching to be set in model config but was not found\n"
+            RET=1
+        fi
+
         kill $SERVER_PID
         wait $SERVER_PID
     fi
