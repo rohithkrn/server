@@ -211,7 +211,7 @@ else
     fi
 
     # Assert batching disabled    
-    if [ $(grep -E '\"dynamic_batching\": \{}' $SERVER_LOG) == 0 ]; then
+    if [ "$(grep -E '\"dynamic_batching\": \{}' $SERVER_LOG)" != "" ]; then
         echo "*** FAILED: Expected dynamic batching found in configuration when none expected.\n"
         RET=1
     fi
@@ -275,7 +275,7 @@ else
     fi
 
     # Assert batching disabled    
-    if [ $(grep -E '\"dynamic_batching\": \{}' $SERVER_LOG) == 0 ]; then
+    if [ "$(grep -E '\"dynamic_batching\": \{}' $SERVER_LOG)" != "" ]; then
         echo "*** FAILED: Expected dynamic batching found in configuration when none expected.\n"
         RET=1
     fi
