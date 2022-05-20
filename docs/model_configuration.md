@@ -284,6 +284,8 @@ configuration](#minimal-model-configuration). You must still provide
 the optional portions of the model configuration by editing the
 config.pbtxt file.
 
+### Default Max Batch Size and Dynamic Batcher
+
 When a model is using the auto-complete feature, a default maximum 
 batch size may be set by using the `--backend-config=default-max-batch-size=<int>` 
 command line argument. This allows all models which are capable of
